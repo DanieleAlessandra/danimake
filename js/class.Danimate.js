@@ -15,6 +15,8 @@ function Danimate(canvas) {
         _scaleX = 1,
         _scaleY = 1,
         _opacity = 100,
+        _mouseX = 0,
+        _mouseY = 0,
         _canvas = null,
         _ctx = null,
         _isMain = false,
@@ -77,6 +79,10 @@ function Danimate(canvas) {
         _onEnterFrame = [
             _redraw
         ],
+        _onMouseMove = [],
+        /**
+         * Execute all registered callbacks for EnterFrame Event
+         */
         _enterFrame = function () {
             _requestAnimationFrame(_enterFrame);
             if (_inPlay === true) {
@@ -92,10 +98,20 @@ function Danimate(canvas) {
                     _globals.then = _globals.now - (_globals.delta % _globals.interval);
                 }
             }
+        },
+        /**
+         * Execute all registered callbacks for MouseMove Event
+         */
+        _mouseMove = function (pos) {
+            console.log(JSON.stringify(pos.clientX));
+        },
+        _enableMouseMove = function () {
+            window.addEventListener('mousemove', _mouseMove);
         };
     _canvas = _pickCanvas(canvas);
     _ctx = _canvas.getContext('2d');
     _enterFrame();
+    _enableMouseMove();
     
     /**
      * Read or write _x property

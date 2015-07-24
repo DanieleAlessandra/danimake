@@ -16,13 +16,11 @@ var d;
     /// Init game
     function init() {
         d = new Danimate('main');
-//        d.width(250);
-        d.drawRect(null, null, null, null, '#B85');
         
         var o = new Danimate();
-        o.drawRect(0, 0, 100, 1, '#990000');
         d.addChild(o);
         d.play();
+        o.play();
     }
     /// Trig
     document_ready(init);
