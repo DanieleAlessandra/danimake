@@ -25,6 +25,14 @@ function Danimate(canvas) {
             'type': 'plain',
             'value': 'transparent'
         },
+        _utils = {
+            deg2rad: function (deg) {
+                return deg * (Math.PI / 180);
+            },
+            rad2deg: function (rad) {
+                return rad * (180 / Math.PI);
+            }
+        },
         _globals = {
             'fps': 30,
             'now': null,
@@ -76,9 +84,9 @@ function Danimate(canvas) {
                 /// Apply translation to rotate properly
                 _ctx.translate(d.x() + (d.width() / 2), d.y() + (d.height() / 2));
                 /// Apply rotation
-                _ctx.rotate(d.rotation() * (Math.PI / 180));
+                _ctx.rotate(_utils.rad2deg(d.rotation()));
                 /// Do the drawing
-                _ctx.drawImage(d.getImage(), (d.width() / -2), (d.height() / -2), d.width() * d.scaleX(), d.height() * d.scaleY());
+                _ctx.drawImage(d.getImage(), (d.width() * d.scaleX() / -2), (d.height() * d.scaleY() / -2), d.width() * d.scaleX(), d.height() * d.scaleY());
                 /// Reset context
                 _ctx.restore();
             }
@@ -152,7 +160,7 @@ function Danimate(canvas) {
      */
     this.rotation = function (n) {
         if (n !== undefined) {
-            _rotation = parseInt(n, 10) || 0;
+            _rotation = parseFloat(n) || 0;
         }
         return _rotation % 360;
     };
@@ -286,4 +294,5 @@ function Danimate(canvas) {
         image.src = _canvas.toDataURL("image/png");
         return image;
     };
+    this.utils = _utils;
 }
