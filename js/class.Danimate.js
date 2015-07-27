@@ -14,7 +14,7 @@ function Danimate(canvas) {
         _height = 400,
         _scaleX = 1,
         _scaleY = 1,
-        _opacity = 100,
+        _alpha = 100,
         _mouseX = 0,
         _mouseY = 0,
         _canvas = null,
@@ -70,7 +70,17 @@ function Danimate(canvas) {
             _ctx.clearRect(0, 0, _width, _height);
             for (i = 0; i < l; i += 1) {
                 d = _displayList[i];
-                _ctx.drawImage(d.getImage(), d.x(), d.y(), d.width() * d.scaleX(), d.height() * d.scaleY());
+                _ctx.save();
+                /// Apply alpha
+                _ctx.globalAlpha = d.alpha() / 100;
+                /// Apply translation to rotate properly
+                _ctx.translate(d.x() + (d.width() / 2), d.y() + (d.height() / 2));
+                /// Apply rotation
+                _ctx.rotate(d.rotation() * (Math.PI / 180));
+                /// Do the drawing
+                _ctx.drawImage(d.getImage(), (d.width() / -2), (d.height() / -2), d.width() * d.scaleX(), d.height() * d.scaleY());
+                /// Reset context
+                _ctx.restore();
             }
         },
         _fixColor = function (c) {
@@ -144,7 +154,7 @@ function Danimate(canvas) {
         if (n !== undefined) {
             _rotation = parseInt(n, 10) || 0;
         }
-        return _rotation;
+        return _rotation % 360;
     };
     /**
      * Read or write _width property
@@ -196,7 +206,7 @@ function Danimate(canvas) {
             o = Math.min(o, 16);
             _scaleY = o;
         }
-        return _height;
+        return _scaleY;
     };
     /**
      * Read or write _scaleX and _scaleY properties
@@ -214,18 +224,18 @@ function Danimate(canvas) {
         return (_scaleX * _scaleY) / 2;
     };
     /**
-     * Read or write _opacity property
+     * Read or write _alpha property
      * @param   {Number} n [0-100] New value or NULL
      * @returns {Number} [0-100] Current or new value
      */
-    this.opacity = function (n) {
+    this.alpha = function (n) {
         if (n !== undefined) {
             var o = parseInt(n, 10) || 0;
             o = Math.max(o, 0);
             o = Math.min(o, 100);
-            _opacity = o;
+            _alpha = o;
         }
-        return _opacity;
+        return _alpha;
     };
     /**
      * Add an element to _displayList
@@ -269,7 +279,7 @@ function Danimate(canvas) {
     };
     /**
      * Generate PNG from Canvas data
-     * @returns {Image} An usable Image Object
+     * @returns {HTMLImageElement} An usable Image Object
      */
     this.getImage = function () {
         var image = new Image();
