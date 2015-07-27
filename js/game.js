@@ -1,8 +1,7 @@
 /*jslint browser: true, devel: true, nomen: true*/
-/*global Danimate*/
+/*global Danimate,Danimage*/
 
-var d,
-    o;
+var d;
 
 (function () {
     "use strict";
@@ -17,45 +16,43 @@ var d,
     /// Init game
     function init() {
         d = new Danimate('main');
-        d.width(1000);
-        d.height(1000);
+        d.width(854);
+        d.height(544);
+        d.enableMouse();
         
-        o = new Danimate();
-        o.width(100);
-        o.height(100);
-        o.alpha(50);
-        o.drawRect(0, 0, 100, 100, '#F69');
-        o.x(255);
-        o.y(100);
-        d.addChild(o);
+        /// Imposta un background
+        var bg,
+            btn_h,
+            btn_d,
+            btn_g;
         
-        var e = new Danimate();
-        e.rotation(45);
-        e.width(100);
-        e.height(100);
-        e.alpha(20);
-        e.drawRect(0, 0, 100, 100, '#F00');
-        e.x(255);
-        e.y(100);
-        d.addChild(e);
+        bg = new Danimage('img/cover/bg.jpg');
+        /// Aggiunge un pulsante HELP
+        btn_h = new Danimage('img/cover/btn_help.png');
+        btn_h.enableMouse();
+        btn_h.x(32);
+        btn_h.y(470);
+        /// Aggiunge un pulsante DIARIO
+        btn_d = new Danimage('img/cover/btn_diario.png');
+        btn_d.enableMouse();
+        btn_d.x(260);
+        btn_d.y(470);
+        /// Aggiunge un pulsante HELP
+        btn_g = new Danimage('img/cover/btn_gioca.png');
+        btn_g.enableMouse();
+        btn_g.x(640);
+        btn_g.y(470);
         
-        var s = new Danimate();
-        s.rotation(27);
-//        s.width(27);
-//        s.height(150);
-        s.alpha(100);
-        s.x(450);
-        s.y(150);
-        s.drawRect(0, 0, 27, 150, '#900');
-        d.addChild(s);
-        
+        d.addChild(bg);
+        d.addChild(btn_h);
+        d.addChild(btn_d);
+        d.addChild(btn_g);
         d.play();
-//        o.play();
+        
         setInterval(function () {
-            o.rotation(o.rotation() + 0.1);
-            o.scale(Math.abs(Math.sin(o.utils.deg2rad(o.rotation()))));
-            s.rotation(s.rotation() + 0.0001);
-        }, 1);
+            bg.rotation(bg.rotation() + 0.0001);
+        }, 10);
+        
     }
     /// Trig
     document_ready(init);

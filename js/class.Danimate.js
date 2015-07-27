@@ -1,5 +1,5 @@
 /*jslint browser: true, devel: true, nomen: true*/
-/*global HTMLCanvasElement*/
+/*global HTMLCanvasElement,HTMLImageElement,Danimage*/
 /**
  * Define a basic DisplayObject like the ActionScript one
  * @param   {String} canvas Id of an existing HTMLCanvasElement or NULL
@@ -20,21 +20,22 @@ function Danimate(canvas) {
         _canvas = null,
         _ctx = null,
         _isMain = false,
+        _mouseEnabled = false,
         _displayList = [],
-        _background = {
-            'type': 'plain',
-            'value': 'transparent'
-        },
+        _hover = false,
         _utils = {
             deg2rad: function (deg) {
                 return deg * (Math.PI / 180);
             },
             rad2deg: function (rad) {
                 return rad * (180 / Math.PI);
+            },
+            fixColor: function (c) {
+                return (/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i).test(c) ? c : false;
             }
         },
         _globals = {
-            'fps': 30,
+            'fps': 24,
             'now': null,
             'then': Date.now(),
             'delta': null
@@ -91,13 +92,48 @@ function Danimate(canvas) {
                 _ctx.restore();
             }
         },
-        _fixColor = function (c) {
-            return (/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i).test(c) ? c : false;
+        _mouseOver = function () {
+            console.log('Mouse Over');
+        },
+        _mouseOut = function () {
+            console.log('Mouse Out');
+        },
+        /**
+         * Propagate Mouse Events to children
+         * TODO: Works only on straight rectangles
+         */
+        _mouseMoved = function (mouseX, mouseY) {
+            var i,
+                l = _displayList.length,
+                d;
+            if (mouseX >= 0 && mouseX <= _width && mouseY >= 0 && mouseY <= _height) {
+                if (!_hover) {
+                    _mouseOver();
+                    _hover = true;
+                }
+            } else {
+                if (_hover) {
+                    _mouseOut();
+                    _hover = false;
+                }
+            }//                        d.mouseMoved(mouseX - d.x(), mouseY - d.y());
+//                    }
+            for (i = 0; i < l; i += 1) {
+                d = _displayList[i];
+                if (d.mouseEnabled()) {
+//                    if (mouseX >= d.x() && mouseX <= (d.x() + d.width()) && mouseY >= d.y() && mouseY <= d.y() + d.height()) {
+//                        d.mouseMoved(mouseX - d.x(), mouseY - d.y());
+//                    }
+                    d.mouseMoved(mouseX - d.x(), mouseY - d.y());
+                }
+            }
         },
         _onEnterFrame = [
             _redraw
         ],
-        _onMouseMove = [],
+        _onMouseMove = [
+            _mouseMoved
+        ],
         /**
          * Execute all registered callbacks for EnterFrame Event
          */
@@ -121,15 +157,15 @@ function Danimate(canvas) {
          * Execute all registered callbacks for MouseMove Event
          */
         _mouseMove = function (pos) {
-            console.log(JSON.stringify(pos.clientX));
-        },
-        _enableMouseMove = function () {
-            window.addEventListener('mousemove', _mouseMove);
+            var i,
+                l = _onMouseMove.length;
+            for (i = 0; i < l; i += 1) {
+                _onMouseMove[i](pos.clientX, pos.clientY);
+            }
         };
     _canvas = _pickCanvas(canvas);
     _ctx = _canvas.getContext('2d');
     _enterFrame();
-    _enableMouseMove();
     
     /**
      * Read or write _x property
@@ -250,10 +286,10 @@ function Danimate(canvas) {
      * @param {Danimate} d Element to append
      */
     this.addChild = function (d) {
-        if (d instanceof Danimate) {
+        if (d instanceof Danimate || d instanceof Danimage) {
             _displayList.push(d);
         } else {
-            throw new Error('Child must be a Danimate instance');
+            throw new Error('Child must be a Danimable Object (Danimate || Danimage');
         }
     };
     /**
@@ -269,7 +305,7 @@ function Danimate(canvas) {
             fillY = parseInt(y, 10) || 0,
             fillW = parseInt(w, 10) || _width,
             fillH = parseInt(h, 10) || _height,
-            fillC = _fixColor(c) || '#006699';
+            fillC = _utils.fixColor(c) || '#006699';
         _ctx.fillStyle = fillC;
         _ctx.fillRect(fillX, fillY, fillW, fillH);
     };
@@ -295,4 +331,17 @@ function Danimate(canvas) {
         return image;
     };
     this.utils = _utils;
+    /**
+     * Enable Mouse Events (only _main);
+     */
+    this.enableMouse = function () {
+        if (_isMain) {
+            window.addEventListener('mousemove', _mouseMove);
+        }
+        _mouseEnabled = true;
+    };
+    this.mouseEnabled = function () {
+        return _mouseEnabled;
+    };
+    this.mouseMoved = _mouseMoved;
 }
