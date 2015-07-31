@@ -13,6 +13,7 @@ var d;
         d.width(854);
         d.height(544);
         d.enableMouse();
+		
         
         /// Imposta un background
         var bg,
@@ -60,7 +61,12 @@ var d;
             btn_h.rotation(0);
             btn_h.alpha(100);
         });
-        
+		btn_h.addListener('MouseDown', function () {
+			this.startDrag();
+		});
+		btn_h.addListener('MouseUp', function () {
+			this.stopDrag();
+		});
     }
     /// Trig
     Danimake.utils.document_ready(init);

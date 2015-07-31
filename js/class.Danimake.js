@@ -1,5 +1,5 @@
-/*jslint browser: true, devel: true, nomen: true*/
-/*global HTMLCanvasElement,HTMLImageElement*/
+/*jslint browser: true, devel: true, nomen: true, plusplus: true*/
+/*global HTMLCanvasElement*/
 /**
  * Define a basic DisplayObject like the ActionScript one
  * @param   {String} Name of the instance
@@ -21,15 +21,18 @@ function Danimake(name) {
         _hover = false,
         _isMain = false,
         _isPlaying = false,
+		_me = this,
         _mouseEnabled = false,
         _mouseX = 0,
         _mouseY = 0,
         _name = name,
         _onClick = [],
         _onEnterFrame = [],
+		_onMouseDown = [],
         _onMouseMove = [],
         _onMouseOver = [],
         _onMouseOut = [],
+		_onMouseUp = [],
         /**
          * Select an existing HTMLCanvasElement or create one
          * @param   {String}            id Id of an existing HTMLCanvasElement or NULL
@@ -51,6 +54,10 @@ function Danimake(name) {
         _rotation = 0,
         _scaleX = 1,
         _scaleY = 1,
+        _startDragMouseX = 0,
+        _startDragMouseY = 0,
+		_startDragX = 0,
+		_startDragY = 0,
         _width = 550,
         _x = 0,
         _y = 0;
@@ -58,9 +65,16 @@ function Danimake(name) {
         var i,
             l = _onClick.length;
         for (i = 0; i < l; i += 1) {
-            _onClick[i]();
+            _onClick[i].call(_me);
         }
     }
+	function doDrag() {
+		//console.log('_startDragX ' + _startDragX);
+//		console.log('_mouseX ' + _mouseX);
+//		console.log('_startDragMouseX ' + _startDragMouseX);
+		_me.x(_startDragX + _me.parent.mouseX() - _startDragMouseX);
+		_me.y(_startDragY + _me.parent.mouseY() - _startDragMouseY);
+	}
     function enterFrame() {
         window.requestAnimationFrame(enterFrame);
         if (_isPlaying === true) {
@@ -71,31 +85,70 @@ function Danimake(name) {
             _globals.interval = 1e3 / _globals.fps;
             if (_globals.delta > _globals.interval) {
                 for (i = 0; i < l; i += 1) {
-                    _onEnterFrame[i]();
+                    _onEnterFrame[i].call(_me);
                 }
                 _globals.then = _globals.now - (_globals.delta % _globals.interval);
             }
         }
     }
+    function mouseDown() {
+        var i,
+            l = _onMouseDown.length,
+			d;
+        for (i = 0; i < l; i += 1) {
+            _onMouseDown[i].call(_me);
+        }
+		l = _displayList.length;
+        for (i = 0; i < l; i += 1) {
+            d = _displayList[i];
+            if (d.mouseEnabled() && d.mouseIsOver()) {
+                d.mouseDown();
+            }
+        }
+    }
     function mouseMove(pos) {
         var i,
-            l = _onMouseMove.length;
+            l = _onMouseMove.length,
+			d,
+			p = {};
         for (i = 0; i < l; i += 1) {
-            _onMouseMove[i](pos.clientX, pos.clientY);
+            _onMouseMove[i].call(_me, pos.clientX, pos.clientY);
+        }
+		l = _displayList.length;
+        for (i = 0; i < l; i += 1) {
+            d = _displayList[i];
+            if (d.mouseEnabled()) {
+				p.clientX = pos.clientX - d.x();
+				p.clientY = pos.clientY - d.y();
+                d.mouseMove(p);
+            }
         }
     }
     function mouseOut() {
         var i,
             l = _onMouseOut.length;
         for (i = 0; i < l; i += 1) {
-            _onMouseOut[i]();
+            _onMouseOut[i].call(_me);
         }
     }
     function mouseOver() {
         var i,
             l = _onMouseOver.length;
         for (i = 0; i < l; i += 1) {
-            _onMouseOver[i]();
+            _onMouseOver[i].call(_me);
+        }
+    }
+    function mouseUp() {
+        var i,
+            l = _onMouseUp.length,
+			d;
+        for (i = 0; i < l; i += 1) {
+            _onMouseUp[i].call(_me);
+        }
+		l = _displayList.length;
+        for (i = 0; i < l; i += 1) {
+            d = _displayList[i];
+			d.mouseUp();
         }
     }
     function redraw() {
@@ -124,6 +177,7 @@ function Danimake(name) {
      */
     this.addChild = function (d) {
         if (d instanceof Danimake) {
+			d.parent = this;
             _displayList.push(d);
         } else {
             throw new Error('Child must be a Danimake Instance');
@@ -135,19 +189,11 @@ function Danimake(name) {
      * @param {Function} callback Callback function
      */
     this.addListener = function (event, callback) {
-        var eventsList = {
-            'Click': _onClick,
-            'EnterFrame': _onEnterFrame,
-            'MouseMove': _onMouseMove,
-            'MouseOver': _onMouseOver,
-            'MouseOut': _onMouseOut
-        },
-            eventReference = eventsList[event];
-        if (Array.isArray(eventReference) && typeof callback === 'function') {
-            eventReference.push(callback);
-        }
-        console.log(eventReference);
-        console.log(eventsList[event]);
+        if (Array.isArray(this.eventsList[event]) && typeof callback === 'function') {
+            this.eventsList[event].push(callback);
+        } else {
+			throw new Error('Cannot register listener for [' + event + ']');
+		}
     };
     /**
      * Read or write _alpha property
@@ -194,9 +240,20 @@ function Danimake(name) {
     this.enableMouse = function () {
         if (_isMain) {
             window.addEventListener('mousemove', mouseMove);
+            window.addEventListener('mousedown', mouseDown);
+            window.addEventListener('mouseup', mouseUp);
         }
         _mouseEnabled = true;
     };
+	this.eventsList = {
+		'Click': _onClick,
+		'EnterFrame': _onEnterFrame,
+		'MouseDown': _onMouseDown,
+		'MouseMove': _onMouseMove,
+		'MouseOver': _onMouseOver,
+		'MouseOut': _onMouseOut,
+		'MouseUp': _onMouseUp
+	};
     /**
      * Generate PNG from Canvas data
      * @returns {HTMLImageElement} An usable Image Object
@@ -218,6 +275,10 @@ function Danimake(name) {
         }
         return _height;
     };
+	this.hover = function () {
+		return _hover;
+	};
+	this.mouseDown = mouseDown;
     /**
      * Getter
      * @returns {Boolean} _mouseEnabled value
@@ -225,6 +286,7 @@ function Danimake(name) {
     this.mouseEnabled = function () {
         return _mouseEnabled;
     };
+	this.mouseMove = mouseMove;
     /**
      * Propagate Mouse Events to Children
      * @param {Number} mouseX Mouse X Position relative to this Object
@@ -234,7 +296,9 @@ function Danimake(name) {
         var i,
             l = _displayList.length,
             d;
-        if (mouseX >= 0 && mouseX <= _width && mouseY >= 0 && mouseY <= _height) {
+		_mouseX = mouseX;
+		_mouseY = mouseY;
+        if (this.mouseIsOver()) {
             if (!_hover) {
                 mouseOver();
                 _hover = true;
@@ -252,11 +316,39 @@ function Danimake(name) {
             }
         }
     };
+	this.mouseIsOver = function() {
+		return _mouseX >= 0 && _mouseX <= _width && _mouseY >= 0 && _mouseY <= _height;
+	}
+	this.mouseUp = mouseUp;
+	/**
+	 * Getter
+	 * @returns {Number} _mouseX value
+	 */
+	this.mouseX = function() {
+		return _mouseX;
+	};
+	/**
+	 * Getter
+	 * @returns {Number} _mouseY value
+	 */
+	this.mouseY = function() {
+		return _mouseY;
+	};
     /**
      * Set _isPlaying = true
      */
     this.play = function () {
         _isPlaying = true;
+    };
+    /**
+     * Remove a single EventListener
+     * @param {String}   event    Event name
+     * @param {Function} callback Callback function
+     */
+    this.removeListener = function (event, callback) {
+        if (Array.isArray(this.eventsList[event]) && typeof callback === 'function') {
+            Danimake.utils.array_remove(this.eventsList[event], callback);
+        }
     };
     /**
      * Read or write _rotation property
@@ -313,10 +405,29 @@ function Danimake(name) {
         return _scaleY;
     };
     /**
+     * Activate dragging of this Instance
+     */
+    this.startDrag = function () {
+		if (_isMain) {
+			throw new Error('Cannot drag main canvas.');
+		}
+        _startDragMouseX = _mouseX;
+        _startDragMouseY = _mouseY;
+		_startDragX = this.parent.x();
+		_startDragY = this.parent.y();
+        this.addListener('MouseMove', doDrag);
+    };
+    /**
      * Set _isPlaying = false
      */
     this.stop = function () {
         _isPlaying = false;
+    };
+    /**
+     * Deactivate dragging
+     */
+    this.stopDrag = function () {
+        this.removeListener('MouseMove', doDrag);
     };
     /**
      * Read or write _width property
@@ -370,6 +481,20 @@ function Danimake(name) {
     enterFrame();
 }
 Danimake.utils = {
+    array_remove: function (arr) {
+        "use strict";
+        var what,
+            a = arguments,
+            L = a.length,
+            ax;
+        while (L > 1 && arr.length) {
+            what = a[--L];
+            while ((ax = arr.indexOf(what)) !== -1) {
+                arr.splice(ax, 1);
+            }
+        }
+        return arr;
+    },
     deg2rad: function (deg) {
         "use strict";
         return deg * (Math.PI / 180);
