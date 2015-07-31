@@ -69,9 +69,6 @@ function Danimake(name) {
         }
     }
 	function doDrag() {
-		//console.log('_startDragX ' + _startDragX);
-//		console.log('_mouseX ' + _mouseX);
-//		console.log('_startDragMouseX ' + _startDragMouseX);
 		_me.x(_startDragX + _me.parent.mouseX() - _startDragMouseX);
 		_me.y(_startDragY + _me.parent.mouseY() - _startDragMouseY);
 	}
@@ -125,6 +122,7 @@ function Danimake(name) {
         }
     }
     function mouseOut() {
+		_hover = false;
         var i,
             l = _onMouseOut.length;
         for (i = 0; i < l; i += 1) {
@@ -132,6 +130,7 @@ function Danimake(name) {
         }
     }
     function mouseOver() {
+		_hover = true;
         var i,
             l = _onMouseOver.length;
         for (i = 0; i < l; i += 1) {
@@ -178,6 +177,7 @@ function Danimake(name) {
     this.addChild = function (d) {
         if (d instanceof Danimake) {
 			d.parent = this;
+			this.removeChild(d);
             _displayList.push(d);
         } else {
             throw new Error('Child must be a Danimake Instance');
@@ -254,6 +254,28 @@ function Danimake(name) {
 		'MouseOut': _onMouseOut,
 		'MouseUp': _onMouseUp
 	};
+	/**
+	 * Get child by name or index
+	 * @param   {Number or String} ref Index or Name
+	 * @returns {Danimake}         Child instance
+	 */
+	this.getChild = function (ref) {
+		var i;
+		
+		if (typeof ref === 'string') {
+			/// Search by Name
+			for (i = 0; i < _displayList.length; i++) {
+				if (_displayList[i].name === 'ref') {
+					return _displayList[i];
+				}
+			}
+		} else if (typeof ref === 'number') {
+			/// Search by Index
+			if (parseInt(ref, 10) < _displayList.length) {
+				return _displayList[ref];
+			}
+		}
+	};
     /**
      * Generate PNG from Canvas data
      * @returns {HTMLImageElement} An usable Image Object
@@ -275,7 +297,10 @@ function Danimake(name) {
         }
         return _height;
     };
-	this.hover = function () {
+	this.hover = function (val) {
+		if (undefined !== val) {
+			_hover = !!val;
+		}
 		return _hover;
 	};
 	this.mouseDown = mouseDown;
@@ -295,50 +320,66 @@ function Danimake(name) {
     this.mouseMoved = function (mouseX, mouseY) {
         var i,
             l = _displayList.length,
-            d;
+            d,
+			foundMouseChild; /// Found the first element under mouse Pointer
 		_mouseX = mouseX;
 		_mouseY = mouseY;
-        if (this.mouseIsOver()) {
-            if (!_hover) {
-                mouseOver();
-                _hover = true;
-            }
-        } else {
-            if (_hover) {
-                mouseOut();
-                _hover = false;
-            }
-        }
-        for (i = 0; i < l; i += 1) {
+		
+        for (i = l - 1; i >= 0; i -= 1) {
             d = _displayList[i];
             if (d.mouseEnabled()) {
                 d.mouseMoved(mouseX - d.x(), mouseY - d.y());
-            }
+				if (!foundMouseChild) {
+					if (d.mouseIsOver()) {
+						if (!d.hover()) {
+							d.mouseOver();
+							foundMouseChild = true;
+						} else {
+							foundMouseChild = true;
+						}
+					} else if (d.hover()) {
+						d.mouseOut();
+					}
+				} else if (d.hover()) {
+					d.mouseOut();
+				}
+			}
         }
     };
-	this.mouseIsOver = function() {
+	this.mouseIsOver = function () {
 		return _mouseX >= 0 && _mouseX <= _width && _mouseY >= 0 && _mouseY <= _height;
-	}
+	};
+	this.mouseOut = mouseOut;
+	this.mouseOver = mouseOver;
 	this.mouseUp = mouseUp;
 	/**
 	 * Getter
 	 * @returns {Number} _mouseX value
 	 */
-	this.mouseX = function() {
+	this.mouseX = function () {
 		return _mouseX;
 	};
 	/**
 	 * Getter
 	 * @returns {Number} _mouseY value
 	 */
-	this.mouseY = function() {
+	this.mouseY = function () {
 		return _mouseY;
+	};
+	this.name = function () {
+		return _name;
 	};
     /**
      * Set _isPlaying = true
      */
     this.play = function () {
         _isPlaying = true;
+    };
+	this.removeChild = function (element) {
+		var i;
+		while ((i = _displayList.indexOf(element)) !== -1) {
+			_displayList.splice(i, 1);
+		}
     };
     /**
      * Remove a single EventListener

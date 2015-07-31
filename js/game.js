@@ -19,26 +19,24 @@ var d;
         var bg,
             btn_h,
             btn_d,
-            btn_g;
+            btn_g,
+			i;
         
         bg = new Danimage('background');
         bg.src('img/cover/bg.jpg');
         /// Aggiunge un pulsante HELP
         btn_h = new Danimage('btn_help');
         btn_h.src('img/cover/btn_help.png');
-        btn_h.enableMouse();
         btn_h.x(32);
         btn_h.y(470);
         /// Aggiunge un pulsante DIARIO
         btn_d = new Danimage('btn_diary');
         btn_d.src('img/cover/btn_diario.png');
-        btn_d.enableMouse();
         btn_d.x(260);
         btn_d.y(470);
         /// Aggiunge un pulsante HELP
         btn_g = new Danimage('btn_play');
         btn_g.src('img/cover/btn_gioca.png');
-        btn_g.enableMouse();
         btn_g.x(640);
         btn_g.y(470);
         
@@ -51,22 +49,28 @@ var d;
         d.addListener('EnterFrame', function () {
             bg.rotation(bg.rotation() + 1);
         });
-        btn_h.addListener('MouseOver', function () {
-            btn_h.scale(1.10);
-            btn_h.rotation((Math.random() * 12) - 6);
-            btn_h.alpha(50);
-        });
-        btn_h.addListener('MouseOut', function () {
-            btn_h.scale(1.00);
-            btn_h.rotation(0);
-            btn_h.alpha(100);
-        });
-		btn_h.addListener('MouseDown', function () {
-			this.startDrag();
-		});
-		btn_h.addListener('MouseUp', function () {
-			this.stopDrag();
-		});
+		
+		var btns = [btn_h, btn_d, btn_g];
+		for (i = 0; i < btns.length; i++) {
+			btns[i].enableMouse();
+			btns[i].addListener('MouseOver', function () {
+				this.scale(1.10);
+				this.rotation((Math.random() * 12) - 6);
+				this.alpha(50);
+			});
+			btns[i].addListener('MouseOut', function () {
+				this.scale(1.00);
+				this.rotation(0);
+				this.alpha(100);
+			});
+			btns[i].addListener('MouseDown', function () {
+				this.parent.addChild(this); /// Bring To Front
+				this.startDrag();
+			});
+			btns[i].addListener('MouseUp', function () {
+				this.stopDrag();
+			});
+		}
     }
     /// Trig
     Danimake.utils.document_ready(init);
