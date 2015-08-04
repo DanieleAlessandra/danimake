@@ -1,5 +1,5 @@
 /*jslint browser: true, devel: true, nomen: true*/
-/*global Danimate,Danimage,Danimake*/
+/*global Danimate*/
 
 var d;
 
@@ -22,20 +22,20 @@ var d;
             btn_g,
 			i;
         
-        bg = new Danimage('background');
+        bg = new Danimate('background');
         bg.src('img/cover/bg.jpg');
         /// Aggiunge un pulsante HELP
-        btn_h = new Danimage('btn_help');
+        btn_h = new Danimate('btn_help');
         btn_h.src('img/cover/btn_help.png');
         btn_h.x(32);
         btn_h.y(470);
         /// Aggiunge un pulsante DIARIO
-        btn_d = new Danimage('btn_diary');
+        btn_d = new Danimate('btn_diary');
         btn_d.src('img/cover/btn_diario.png');
         btn_d.x(260);
         btn_d.y(470);
         /// Aggiunge un pulsante HELP
-        btn_g = new Danimage('btn_play');
+        btn_g = new Danimate('btn_play');
         btn_g.src('img/cover/btn_gioca.png');
         btn_g.x(640);
         btn_g.y(470);
@@ -65,7 +65,7 @@ var d;
 			});
 			btns[i].addListener('MouseDown', function () {
 				this.parent.addChild(this); /// Bring To Front
-				this.startDrag();
+				this.startDrag(0, 0, 100, 100);
 			});
 			btns[i].addListener('MouseUp', function () {
 				this.stopDrag();
@@ -73,5 +73,5 @@ var d;
 		}
     }
     /// Trig
-    Danimake.utils.document_ready(init);
+    Danimate.utils.document_ready(init);
 }());
