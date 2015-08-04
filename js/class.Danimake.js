@@ -11,6 +11,12 @@ function Danimake(name) {
         _canvas = null,
         _ctx = null,
         _displayList = [],
+        _dragBoundaries = {
+            bottom: 1e6,
+            left: -1e6,
+            right: 1e6,
+            top: -1e6
+        },
         _globals = {
             'fps': 24,
             'now': null,
@@ -69,9 +75,12 @@ function Danimake(name) {
         }
     }
 	function doDrag() {
-		_me.x(_startDragX + _me.parent.mouseX() - _startDragMouseX);
-		_me.y(_startDragY + _me.parent.mouseY() - _startDragMouseY);
-	}
+        var currentDragX = _startDragX + _me.parent.mouseX() - _startDragMouseX,
+            currentDragY = _startDragY + _me.parent.mouseY() - _startDragMouseY;
+		_me.x(Danimake.utils.math_mid(_dragBoundaries.left, currentDragX, _dragBoundaries.right));
+		_me.y(Danimake.utils.math_mid(_dragBoundaries.top, currentDragY, _dragBoundaries.bottom));
+        console.log('Mid: ' + Danimake.utils.math_mid(_dragBoundaries.left, currentDragX, _dragBoundaries.right) + ', values: ' + _dragBoundaries.left + ', ' + currentDragX + ', ' + _dragBoundaries.right);
+    }
     function enterFrame() {
         window.requestAnimationFrame(enterFrame);
         if (_isPlaying === true) {
@@ -96,10 +105,11 @@ function Danimake(name) {
             _onMouseDown[i].call(_me);
         }
 		l = _displayList.length;
-        for (i = 0; i < l; i += 1) {
+        for (i = l - 1; i >= 0; i -= 1) {
             d = _displayList[i];
             if (d.mouseEnabled() && d.mouseIsOver()) {
                 d.mouseDown();
+                return;
             }
         }
     }
@@ -448,10 +458,14 @@ function Danimake(name) {
     /**
      * Activate dragging of this Instance
      */
-    this.startDrag = function () {
+    this.startDrag = function (left, top, right, bottom) {
 		if (_isMain) {
 			throw new Error('Cannot drag main canvas.');
 		}
+        _dragBoundaries.left = undefined !== left ? left : -1e6;
+        _dragBoundaries.top = undefined !== top ? top : -1e6;
+        _dragBoundaries.right = undefined !== right ? right : 1e6;
+        _dragBoundaries.bottom = undefined !== bottom ? bottom : 1e6;
         _startDragMouseX = _mouseX;
         _startDragMouseY = _mouseY;
 		_startDragX = this.parent.x();
@@ -551,6 +565,16 @@ Danimake.utils = {
     fixColor: function (c) {
         "use strict";
         return (/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i).test(c) ? c : false;
+    },
+    math_mid: function (x1, x2, x3) {
+        "use strict";
+        var op = [];
+        op.push(!isNaN(x1) ? x1 : 0);
+        op.push(!isNaN(x2) ? x2 : 0);
+        op.push(!isNaN(x3) ? x3 : 0);
+        console.log(x1 + ', ' + x2 + ', ' + x3);
+        op.sort(function (a, b) {return a - b; });
+        return op[1];
     },
     rad2deg: function (rad) {
         "use strict";
