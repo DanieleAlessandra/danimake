@@ -11,7 +11,7 @@ function Danimate(name) {
         _canvas = null,
         _ctx = null,
         _currentScene = 0,
-        _displayList = [[]],
+        _displayList = [/*SCENES*/[]],
         _dragBoundaries = {
             bottom: 1e6,
             left: -1e6,
@@ -78,7 +78,8 @@ function Danimate(name) {
         _imgLoaded = true;
         _width = _img.width;
         _height = _img.height;
-        _displayList[0] = _img;
+        _img.mouseEnabled = function () { return false; };
+        _me.displayList()[0] = _img;
     };
     
     function click() {
@@ -93,7 +94,6 @@ function Danimate(name) {
             currentDragY = _startDragY + _me.parent.mouseY() - _startDragMouseY;
 		_me.x(Danimate.utils.math_mid(_dragBoundaries.left, currentDragX, _dragBoundaries.right));
 		_me.y(Danimate.utils.math_mid(_dragBoundaries.top, currentDragY, _dragBoundaries.bottom));
-        console.log('Mid: ' + Danimate.utils.math_mid(_dragBoundaries.left, currentDragX, _dragBoundaries.right) + ', values: ' + _dragBoundaries.left + ', ' + currentDragX + ', ' + _dragBoundaries.right);
     }
     function enterFrame() {
         window.requestAnimationFrame(enterFrame);
@@ -118,9 +118,9 @@ function Danimate(name) {
         for (i = 0; i < l; i += 1) {
             _onMouseDown[i].call(_me);
         }
-		l = _displayList[_currentScene].length;
+		l = _me.displayList().length;
         for (i = l - 1; i >= 0; i -= 1) {
-            d = _displayList[_currentScene][i];
+            d = _me.displayList()[i];
             if (d.mouseEnabled() && d.mouseIsOver()) {
                 d.mouseDown();
                 return;
@@ -135,9 +135,9 @@ function Danimate(name) {
         for (i = 0; i < l; i += 1) {
             _onMouseMove[i].call(_me, pos.clientX, pos.clientY);
         }
-		l = _displayList[_currentScene].length;
+		l = _me.displayList().length;
         for (i = 0; i < l; i += 1) {
-            d = _displayList[_currentScene][i];
+            d = _me.displayList()[i];
             if (d.mouseEnabled()) {
 				p.clientX = pos.clientX - d.x();
 				p.clientY = pos.clientY - d.y();
@@ -168,19 +168,21 @@ function Danimate(name) {
         for (i = 0; i < l; i += 1) {
             _onMouseUp[i].call(_me);
         }
-		l = _displayList[_currentScene].length;
+		l = _me.displayList().length;
         for (i = 0; i < l; i += 1) {
-            d = _displayList[_currentScene][i];
-			d.mouseUp();
+            d = _me.displayList()[i];
+            if (d instanceof Danimate) {
+                d.mouseUp();
+            }
         }
     }
     function redraw() {
         var i,
-            l = _displayList[_currentScene].length,
+            l = _me.displayList().length,
             d;
         _ctx.clearRect(0, 0, _width, _height);
         for (i = 0; i < l; i += 1) {
-            d = _displayList[_currentScene][i];
+            d = _me.displayList()[i];
             _ctx.save();
             /// Apply alpha
             _ctx.globalAlpha = d.alpha() / 100;
@@ -195,14 +197,14 @@ function Danimate(name) {
         }
     }
     /**
-     * Add an element to _displayList[_currentScene]
+     * Add an element to this.displayList()
      * @param {Danimate} d Element to append
      */
     this.addChild = function (d) {
         if (d instanceof Danimate) {
 			d.parent = this;
 			this.removeChild(d);
-            _displayList[_currentScene].push(d);
+            this.displayList().push(d);
         } else {
             throw new Error('Child must be a Danimate Instance');
         }
@@ -240,6 +242,14 @@ function Danimate(name) {
     this.canvas = function (canvasId) {
         _canvas = _pickCanvas(canvasId);
         _ctx = _canvas.getContext('2d');
+    };
+    this.displayList = function () {
+        var op = _displayList[_currentScene];
+        if (op instanceof Array) {
+            return op;
+        } else {
+            throw new Error('_displayList must be an Array');
+        }
     };
     /**
      * Draws a rectangle
@@ -284,19 +294,20 @@ function Danimate(name) {
 	 * @returns {Danimate}         Child instance
 	 */
 	this.getChild = function (ref) {
-		var i;
+		var i,
+            l = this.displayList().length;
 		
 		if (typeof ref === 'string') {
 			/// Search by Name
-			for (i = 0; i < _displayList[_currentScene].length; i++) {
-				if (_displayList[_currentScene][i].name === 'ref') {
-					return _displayList[_currentScene][i];
+			for (i = 0; i < l; i++) {
+				if (this.displayList()[i].name === 'ref') {
+					return this.displayList()[i];
 				}
 			}
 		} else if (typeof ref === 'number') {
 			/// Search by Index
-			if (parseInt(ref, 10) < _displayList[_currentScene].length) {
-				return _displayList[_currentScene][ref];
+			if (parseInt(ref, 10) < this.displayList().length) {
+				return this.displayList()[ref];
 			}
 		}
 	};
@@ -346,15 +357,15 @@ function Danimate(name) {
      */
     this.mouseMoved = function (mouseX, mouseY) {
         var i,
-            l = _displayList[_currentScene].length,
+            l = this.displayList().length,
             d,
 			foundMouseChild; /// Found the first element under mouse Pointer
 		_mouseX = mouseX;
 		_mouseY = mouseY;
 		
         for (i = l - 1; i >= 0; i -= 1) {
-            d = _displayList[_currentScene][i];
-            if (d.mouseEnabled()) {
+            d = this.displayList()[i];
+            if (d && d.mouseEnabled()) {
                 d.mouseMoved(mouseX - d.x(), mouseY - d.y());
 				if (!foundMouseChild) {
 					if (d.mouseIsOver()) {
@@ -404,8 +415,8 @@ function Danimate(name) {
     };
 	this.removeChild = function (element) {
 		var i;
-		while ((i = _displayList[_currentScene].indexOf(element)) !== -1) {
-			_displayList[_currentScene].splice(i, 1);
+		while ((i = this.displayList().indexOf(element)) !== -1) {
+			this.displayList().splice(i, 1);
 		}
     };
     /**
@@ -600,7 +611,6 @@ Danimate.utils = {
         op.push(!isNaN(x1) ? x1 : 0);
         op.push(!isNaN(x2) ? x2 : 0);
         op.push(!isNaN(x3) ? x3 : 0);
-        console.log(x1 + ', ' + x2 + ', ' + x3);
         op.sort(function (a, b) {return a - b; });
         return op[1];
     },
