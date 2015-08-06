@@ -82,6 +82,9 @@ function Danimate(name) {
         _me.displayList()[0] = _img;
     };
     
+    /**
+     * Manage clicks
+     */
     function click() {
         var i,
             l = _onClick.length;
@@ -89,12 +92,18 @@ function Danimate(name) {
             _onClick[i].call(_me);
         }
     }
+	/**
+	 * Execute dragging
+	 */
 	function doDrag() {
         var currentDragX = _startDragX + _me.parent.mouseX() - _startDragMouseX,
             currentDragY = _startDragY + _me.parent.mouseY() - _startDragMouseY;
 		_me.x(Danimate.utils.math_mid(_dragBoundaries.left, currentDragX, _dragBoundaries.right));
 		_me.y(Danimate.utils.math_mid(_dragBoundaries.top, currentDragY, _dragBoundaries.bottom));
     }
+    /**
+     * Executed every frame interval
+     */
     function enterFrame() {
         window.requestAnimationFrame(enterFrame);
         if (_isPlaying === true) {
@@ -111,6 +120,9 @@ function Danimate(name) {
             }
         }
     }
+    /**
+     * Manages MouseDown Events
+     */
     function mouseDown() {
         var i,
             l = _onMouseDown.length,
@@ -127,6 +139,10 @@ function Danimate(name) {
             }
         }
     }
+    /**
+     * Manages MouseMove Events
+     * @param {Object} pos Event Coordinates
+     */
     function mouseMove(pos) {
         var i,
             l = _onMouseMove.length,
@@ -145,6 +161,9 @@ function Danimate(name) {
             }
         }
     }
+    /**
+     * Manages MouseOut Events
+     */
     function mouseOut() {
 		_hover = false;
         var i,
@@ -153,6 +172,9 @@ function Danimate(name) {
             _onMouseOut[i].call(_me);
         }
     }
+    /**
+     * Manages MouseOver Events
+     */
     function mouseOver() {
 		_hover = true;
         var i,
@@ -161,6 +183,9 @@ function Danimate(name) {
             _onMouseOver[i].call(_me);
         }
     }
+    /**
+     * Manages MouseUp  Events
+     */
     function mouseUp() {
         var i,
             l = _onMouseUp.length,
@@ -176,6 +201,9 @@ function Danimate(name) {
             }
         }
     }
+    /**
+     * Redraw entire canvas (usually every frame interval)
+     */
     function redraw() {
         var i,
             l = _me.displayList().length,
@@ -221,6 +249,10 @@ function Danimate(name) {
 			throw new Error('Cannot register listener for [' + event + ']');
 		}
     };
+    this.addScene = function () {
+        _displayList.push([]);
+        this.gotoScene(_displayList.length - 1);
+    };
     /**
      * Read or write _alpha property
      * @param   {Number} n [0-100] New value or NULL
@@ -243,6 +275,10 @@ function Danimate(name) {
         _canvas = _pickCanvas(canvasId);
         _ctx = _canvas.getContext('2d');
     };
+    /**
+     * Get current displayList based on scene and frame numbers
+     * @returns {Array} An Array of Danimate instances (occasionally also HTMLImageElement are returned)
+     */
     this.displayList = function () {
         var op = _displayList[_currentScene];
         if (op instanceof Array) {
@@ -324,6 +360,15 @@ function Danimate(name) {
         return image;
     };
     /**
+     * Changes Current Scene
+     * @param {Number} n Zero based Scene Number
+     */
+    this.gotoScene = function (n) {
+        if (_displayList[n]) {
+            _currentScene = n;
+        }
+    };
+    /**
      * Read or write _height property
      * @param   {Number} n New value or NULL
      * @returns {Number} Current or new value
@@ -384,6 +429,10 @@ function Danimate(name) {
 			}
         }
     };
+	/**
+	 * Tells if mouse is over this object (only works on straight rectangles)
+	 * @returns {Boolean} True if mouse is over
+	 */
 	this.mouseIsOver = function () {
 		return _mouseX >= 0 && _mouseX <= _width && _mouseY >= 0 && _mouseY <= _height;
 	};
