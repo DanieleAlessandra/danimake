@@ -10,8 +10,9 @@ function Danimate(name) {
     var _alpha = 100,
         _canvas = null,
         _ctx = null,
+        _currentFrame = 0,
         _currentScene = 0,
-        _displayList = [/*SCENES*/[]],
+        _displayList = [/*SCENES*/[/*FRAMES*/[]]],
         _dragBoundaries = {
             bottom: 1e6,
             left: -1e6,
@@ -37,6 +38,7 @@ function Danimate(name) {
         _name = name,
         _onClick = [],
         _onEnterFrame = [],
+        _onFrame = [],
 		_onMouseDown = [],
         _onMouseMove = [],
         _onMouseOver = [],
@@ -202,6 +204,12 @@ function Danimate(name) {
         }
     }
     /**
+     * Move animation to Next Frame
+     */
+    function nextFrame() {
+        _me.gotoFrame(_currentFrame + 1);
+    }
+    /**
      * Redraw entire canvas (usually every frame interval)
      */
     function redraw() {
@@ -238,6 +246,37 @@ function Danimate(name) {
         }
     };
     /**
+     * Adds a single Frame
+     */
+    this.addFrame = function () {
+        _displayList[_currentScene].push([]);
+    };
+    /**
+     * Register a single callback for a specific frame
+     * @param {Function} callback Callback function
+     * @param {Number}   scene    Zero based Scene Number
+     * @param {Number}   frame    Zero based Frame Number
+     */
+    this.addFrameCallback = function (callback, scene, frame) {
+        if (isNaN(scene)) {
+            scene = 0;
+        }
+        if (isNaN(frame)) {
+            frame = 0;
+        }
+        if (undefined === _onFrame[scene]) {
+            _onFrame[scene] = [];
+        }
+        if (undefined === _onFrame[scene][frame]) {
+            _onFrame[scene][frame] = [];
+        }
+        if (typeof callback === 'function') {
+            _onFrame[scene][frame].push(callback);
+        } else {
+			throw new Error('Cannot register listener for frame ' + frame + ' in scene ' + scene);
+		}
+    };
+    /**
      * Register a single EventListener
      * @param {String}   event    Event name
      * @param {Function} callback Callback function
@@ -249,6 +288,9 @@ function Danimate(name) {
 			throw new Error('Cannot register listener for [' + event + ']');
 		}
     };
+    /**
+     * Adds a single Scene
+     */
     this.addScene = function () {
         _displayList.push([]);
         this.gotoScene(_displayList.length - 1);
@@ -280,7 +322,7 @@ function Danimate(name) {
      * @returns {Array} An Array of Danimate instances (occasionally also HTMLImageElement are returned)
      */
     this.displayList = function () {
-        var op = _displayList[_currentScene];
+        var op = _displayList[_currentScene][_currentFrame];
         if (op instanceof Array) {
             return op;
         } else {
@@ -360,12 +402,35 @@ function Danimate(name) {
         return image;
     };
     /**
+     * Changes current Frame
+     * @param {Number} n Zero based Frame Number
+     */
+    this.gotoFrame = function (n) {
+        var i,
+            l;
+        if (_displayList[_currentScene][n]) {
+            _currentFrame = n;
+            if (undefined !== _onFrame[_currentScene]) {
+                if (undefined !== _onFrame[_currentScene][_currentFrame]) {
+                    l = _onFrame[_currentScene][_currentFrame].length;
+                    for (i = 0; i < l; i += 1) {
+                        _onFrame[_currentScene][_currentFrame][i].call(_me);
+                    }
+                }
+            }
+        } else {
+            _currentFrame = 0;
+        }
+    };
+    /**
      * Changes Current Scene
      * @param {Number} n Zero based Scene Number
      */
     this.gotoScene = function (n) {
         if (_displayList[n]) {
             _currentScene = n;
+        } else {
+            _currentScene = 0;
         }
     };
     /**
@@ -619,6 +684,7 @@ function Danimate(name) {
     }());
     /// Assign initial callbacks
     _onEnterFrame.push(redraw);
+    _onEnterFrame.push(nextFrame);
     _onMouseMove.push(this.mouseMoved);
     /// Starts Animation
     enterFrame();
