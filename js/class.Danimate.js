@@ -25,10 +25,18 @@ function Danimate(name) {
             'then': Date.now(),
             'delta': null
         },
+        _handleX = 0,
+        _handleY = 0,
         _height = 400,
         _hover = false,
         _img = new Image(),
+        _imgCropHeight = 0,
+        _imgCropWidth = 0,
+        _imgCropX = 0,
+        _imgCropY = 0,
         _imgLoaded = false,
+        _imgHeight = 0,
+        _imgWidth = 0,
         _isMain = false,
         _isPlaying = false,
 		_me = this,
@@ -78,8 +86,10 @@ function Danimate(name) {
      */
     _img.onload = function () {
         _imgLoaded = true;
-        _width = _img.width;
-        _height = _img.height;
+        _width = _imgCropWidth || _img.width;
+        _height = _imgCropHeight || _img.height;
+        _handleX = _width / 2;
+        _handleY = _height / 2;
         _img.mouseEnabled = function () { return false; };
         _me.displayList()[0] = _img;
     };
@@ -215,7 +225,11 @@ function Danimate(name) {
     function redraw() {
         var i,
             l = _me.displayList().length,
-            d;
+            d,
+            values;
+        if (!_ctx) {
+            console.log(this.name());
+        }
         _ctx.clearRect(0, 0, _width, _height);
         for (i = 0; i < l; i += 1) {
             d = _me.displayList()[i];
@@ -223,11 +237,13 @@ function Danimate(name) {
             /// Apply alpha
             _ctx.globalAlpha = d.alpha() / 100;
             /// Apply translation to rotate properly
-            _ctx.translate(d.x() + (d.width() / 2), d.y() + (d.height() / 2));
+            _ctx.translate(d.handleX(), d.handleY());
             /// Apply rotation
             _ctx.rotate(Danimate.utils.deg2rad(d.rotation()));
             /// Do the drawing
-            _ctx.drawImage(d.getImage(), (d.width() * d.scaleX() / -2), (d.height() * d.scaleY() / -2), d.width() * d.scaleX(), d.height() * d.scaleY());
+            values = d.drawingValues();
+//            console.log(values);
+            _ctx.drawImage.apply(_ctx, values);
             /// Reset context
             _ctx.restore();
         }
@@ -329,6 +345,24 @@ function Danimate(name) {
             throw new Error('_displayList must be an Array');
         }
     };
+    this.drawingValues = function () {
+        var op = [];
+        op.push(this.getImage());
+        op.push(_imgCropX || 0);
+        op.push(_imgCropY || 0);
+        op.push(_imgCropWidth || this.width());
+        op.push(_imgCropHeight || this.height());
+        if (this.parent) {
+            op.push((this.x() - this.handleX()) * this.parent.scaleX());
+            op.push((this.y() - this.handleY()) * this.parent.scaleY());
+        } else {
+            op.push((this.x() - this.handleX()));
+            op.push((this.y() - this.handleY()));
+        }
+        op.push(this.width() * this.scaleX());
+        op.push(this.height() * this.scaleY());
+        return op;
+    };
     /**
      * Draws a rectangle
      * @param {Number} x Left border position (default: 0)
@@ -398,7 +432,9 @@ function Danimate(name) {
             return _img;
         }
         var image = new Image();
-        image.src = _canvas.toDataURL("image/png");
+        if (_canvas instanceof HTMLCanvasElement) {
+            image.src = _canvas.toDataURL("image/png");
+        }
         return image;
     };
     /**
@@ -433,6 +469,18 @@ function Danimate(name) {
             _currentScene = 0;
         }
     };
+    this.handleX = function (n) {
+        if (n !== undefined) {
+            _handleX = parseInt(n, 10) || 0;
+        }
+        return _handleX;
+    };
+    this.handleY = function (n) {
+        if (n !== undefined) {
+            _handleY = parseInt(n, 10) || 0;
+        }
+        return _handleY;
+    };
     /**
      * Read or write _height property
      * @param   {Number} n New value or NULL
@@ -451,6 +499,50 @@ function Danimate(name) {
 		}
 		return _hover;
 	};
+    this.loadImage = function (src, x, y, width, height) {
+        if (src !== undefined) {
+            if (x !== undefined) {
+                _imgCropX = x;
+            }
+            if (y !== undefined) {
+                _imgCropY = y;
+            }
+            if (width !== undefined) {
+                _imgCropWidth = width;
+            }
+            if (height !== undefined) {
+                _imgCropHeight = height;
+            }
+            this.src(src);
+        }
+    };
+    this.loadImageSprite = function (src, frames) {
+        var l = frames.length,
+            i,
+            tempImg;
+        /// Init values
+        this.canvas(this.name());
+        _imgCropX = frames[0][0];
+        _imgCropY = frames[0][1];
+        _imgCropWidth = frames[0][2];
+        _imgCropHeight = frames[0][3];
+        _width = frames[0][2];
+        _height = frames[0][3];
+        
+        for (i = 0; i < l; i++) {
+            tempImg = new Danimate(this.name() + '_frame_' + i);
+            tempImg.loadImage(src, frames[i][0], frames[i][1], frames[i][2], frames[i][3]);
+            if (!_displayList[_currentScene]) {
+                _displayList[_currentScene] = [];
+            }
+            if (!_displayList[_currentScene][i]) {
+                _displayList[_currentScene][i] = [];
+            }
+            _displayList[_currentScene][i][0] = tempImg;
+        }
+        this.play();
+        
+    };
 	this.mouseDown = mouseDown;
     /**
      * Getter
