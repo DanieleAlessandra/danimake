@@ -227,9 +227,6 @@ function Danimate(name) {
             l = _me.displayList().length,
             d,
             values;
-        if (!_ctx) {
-            console.log(this.name());
-        }
         _ctx.clearRect(0, 0, _width, _height);
         for (i = 0; i < l; i += 1) {
             d = _me.displayList()[i];
