@@ -11,6 +11,12 @@ function Danimake(name) {
         _canvas = null,
         _ctx = null,
         _displayList = [],
+		_dragBoundaries = {
+			maxX: 1e12,
+			maxY: 1e12,
+			minX: -1e12,
+			minY: -1e12
+		},
         _globals = {
             'fps': 24,
             'now': null,
@@ -69,6 +75,7 @@ function Danimake(name) {
         }
     }
 	function doDrag() {
+		// TODO: Respect Boundaries
 		_me.x(_startDragX + _me.parent.mouseX() - _startDragMouseX);
 		_me.y(_startDragY + _me.parent.mouseY() - _startDragMouseY);
 	}
